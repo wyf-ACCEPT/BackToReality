@@ -202,15 +202,6 @@ python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <nu
 ```
 
 
-
-## TODO list
-
-We will add the following to this repo:
-
-* Virtual scene generation for Matterport3D
-* Data and code for training Votenet (both baseline and BR) on the Matterport3D dataset
-
-
 ## Acknowledgements
 
 We thank a lot for the flexible codebase of [Votenet](https://github.com/facebookresearch/votenet) and [GroupFree3D](https://github.com/zeliu98/Group-Free-3D).
