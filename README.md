@@ -1,4 +1,4 @@
-# Back To Reality: Weak-supervised 3D Object Detection with Shape-guided Label Enhancement
+# Back To Reality: Weakly-supervised 3D Object Detection with Shape-guided Label Enhancement
 
 ## Announcement 🔥
 
