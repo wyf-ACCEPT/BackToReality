@@ -79,7 +79,7 @@ After that, the file directory should be like:
 ### Matterport3D
 To start from the raw data, you should:
 
-* Follow the [README](./detection/Votenet/matterport/README.md) under `Votenet/scannet` to generate the real scenes. 
+* Follow the [README](./detection/Votenet/matterport/README.md) under `Votenet/matterport` to generate the real scenes. 
 * Follow the [README](./data_generation/Matterport3D/README.md) under `./data_generation/Matterport3D` to generate the virtual scenes.
 
 The processed data can also be downloaded from [here](https://drive.google.com/drive/folders/166w4w9xa8c7WITDAGswEsDQ8cJxBJomn?usp=sharing).
