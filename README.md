@@ -12,7 +12,7 @@ This repo contains PyTorch implementation for paper [Back To Reality: Weak-super
 
 ```
 @inproceedings{xu2022br,
-author = {Xu, Xiuwei and Wang, Yifan and Zheng, Yu and Rao, Yongming and Lu, Jiwen and Zhou, Jie},
+author = {Xu, Xiuwei and Wang, Yifan and Zheng, Yu and Rao, Yongming and Zhou, Jie and Lu, Jiwen},
 title = {Back To Reality: Weak-supervised 3D Object Detection with Shape-guided Label Enhancement},
 booktitle = {IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
 year = {2022}
