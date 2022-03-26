@@ -1,9 +1,5 @@
 # Back To Reality: Weakly-supervised 3D Object Detection with Shape-guided Label Enhancement
 
-## Announcement 🔥
-
-We have not tested the code yet. We will finish this project by April!!!
-
 ## Introduction
 
 This repo contains PyTorch implementation for paper [Back To Reality: Weakly-supervised 3D Object Detection with Shape-guided Label Enhancement](http://arxiv.org/abs/2203.05238) (CVPR2022)
