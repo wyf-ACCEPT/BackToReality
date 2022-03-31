@@ -182,7 +182,7 @@ python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <nu
 
 # Recommended num of GPUs: 6
 
-python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <num_of_gpus_to_use> train_GF_BR_CenterRefine.py --num_point 50000 --num_decoder_layers 6 --size_delta 0.111111111111 --center_delta 0.04 --learning_rate 0.001 --decoder_learning_rate 0.0006 --weight_decay 0.0005 --dataset scannet --log_dir log_GF_BRM_Refine --checkpoint_path <[checkpoint_path_of_groupfree3D]/ckpt_epoch_last.pth> --max_epoch 120 --val_freq 10 --save_freq 20 --batch_size 2
+python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <num_of_gpus_to_use> train_GF_BR_CenterRefine.py --num_point 50000 --num_decoder_layers 6 --size_delta 0.111111111111 --center_delta 0.04 --learning_rate 0.002 --decoder_learning_rate 0.0002 --weight_decay 0.0005 --dataset scannet --log_dir log_GF_BRM_Refine --checkpoint_path <[checkpoint_path_of_groupfree3D]/ckpt_epoch_last.pth> --max_epoch 120 --val_freq 10 --save_freq 20 --batch_size 2
 ```
 
 To train BR (point-version) on Scannet data, please run:
@@ -194,7 +194,7 @@ python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <nu
 
 # Recommended num of GPUs: 6
 
-python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <num_of_gpus_to_use> train_GF_BR_CenterRefine.py --num_point 50000 --num_decoder_layers 6 --size_delta 0.111111111111 --center_delta 0.04 --learning_rate 0.001 --decoder_learning_rate 0.0006 --weight_decay 0.0005 --dataset scannet --log_dir log_GF_BRP_Refine --checkpoint_path <[checkpoint_path_of_groupfree3D]/ckpt_epoch_last.pth> --max_epoch 120 --val_freq 10 --save_freq 20 --batch_size 2 --dataset_without_mesh
+python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <num_of_gpus_to_use> train_GF_BR_CenterRefine.py --num_point 50000 --num_decoder_layers 6 --size_delta 0.111111111111 --center_delta 0.04 --learning_rate 0.002 --decoder_learning_rate 0.0002 --weight_decay 0.0005 --dataset scannet --log_dir log_GF_BRP_Refine --checkpoint_path <[checkpoint_path_of_groupfree3D]/ckpt_epoch_last.pth> --max_epoch 120 --val_freq 10 --save_freq 20 --batch_size 2 --dataset_without_mesh
 ```
 
 
