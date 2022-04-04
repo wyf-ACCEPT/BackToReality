@@ -129,7 +129,7 @@ if FLAGS.dataset == 'matterport':
     from model_util_matterport import MatterportDatasetConfig_md40
     DATASET_CONFIG = MatterportDatasetConfig_md40()
     TRAIN_DATASET = MatterportDetectionDataset('train', 'matterport_train_detection_data_md40', num_points=NUM_POINT,
-        augment=True,
+        augment=True, center_jitter=FLAGS.center_jitter,
         use_color=FLAGS.use_color, use_height=(not FLAGS.no_height))
     TEST_DATASET = MatterportDetectionDataset('val', 'matterport_train_detection_data_md40', num_points=NUM_POINT,
         augment=False,
