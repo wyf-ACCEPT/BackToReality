@@ -111,9 +111,9 @@ class ScannetDatasetConfig_md40(object):
         size_residual = size - self.type_mean_size[type_name]
         return size_class, size_residual
     
-    def class2size(self, pred_cls, residual):
+    def class2size(self, pred_cls, residual, ratio=1.0):
         ''' Inverse function to size2class '''        
-        return self.mean_size_arr[pred_cls, :] + residual
+        return (self.mean_size_arr[pred_cls, :] + residual) * ratio
 
     def param2obb(self, center, heading_class, heading_residual, size_class, size_residual):
         heading_angle = self.class2angle(heading_class, heading_residual)
