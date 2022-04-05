@@ -78,8 +78,8 @@ def set_random_seed(seed_value):
     torch.cuda.manual_seed_all(seed_value)
     torch.backends.cudnn.deterministic = True
 
-SEED_VALUE = 42
-set_random_seed(SEED_VALUE)
+#SEED_VALUE = 42
+#set_random_seed(SEED_VALUE)
 
 # ------------------------------------------------------------------------- GLOBAL CONFIG BEG
 
@@ -92,8 +92,8 @@ BN_DECAY_RATE = FLAGS.bn_decay_rate
 LR_DECAY_STEPS = [int(x) for x in FLAGS.lr_decay_steps.split(',')]
 LR_DECAY_RATES = [float(x) for x in FLAGS.lr_decay_rates.split(',')]
 assert(len(LR_DECAY_STEPS)==len(LR_DECAY_RATES))
-LOG_DIR = FLAGS.log_dir
-DEFAULT_DUMP_DIR = os.path.join(BASE_DIR, os.path.basename(LOG_DIR))
+LOG_DIR = 'logs/log_{}/'.format(FLAGS.dataset) + FLAGS.log_dir
+DEFAULT_DUMP_DIR = LOG_DIR #os.path.join(BASE_DIR, os.path.basename(LOG_DIR))
 DUMP_DIR = FLAGS.dump_dir if FLAGS.dump_dir is not None else DEFAULT_DUMP_DIR
 DEFAULT_CHECKPOINT_PATH = os.path.join(LOG_DIR, 'train_BR.tar')
 CHECKPOINT_PATH = FLAGS.checkpoint_path if FLAGS.checkpoint_path is not None \
@@ -181,13 +181,15 @@ else:
 TRAIN_DATALOADER_S = DataLoader(TRAIN_DATASET_S, batch_size=BATCH_SIZE,
     shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 TEST_DATALOADER_S = DataLoader(TEST_DATASET_S, batch_size=BATCH_SIZE,
-    shuffle=False, num_workers=0, worker_init_fn=my_worker_init_fn)
+    shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 TRAIN_DATALOADER_T = DataLoader(TRAIN_DATASET_T, batch_size=BATCH_SIZE,
     shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 TEST_DATALOADER_T = DataLoader(TEST_DATASET_T, batch_size=BATCH_SIZE,
-    shuffle=False, num_workers=0, worker_init_fn=my_worker_init_fn)
+    shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 print(len(TRAIN_DATALOADER_S), len(TEST_DATALOADER_S))
 print(len(TRAIN_DATALOADER_T), len(TEST_DATALOADER_T))
+TRAIN_cycle_S = (len(TRAIN_DATALOADER_S) < len(TRAIN_DATALOADER_T))
+TEST_cycle_S = (len(TEST_DATALOADER_S) < len(TEST_DATALOADER_T))
 
 # Init the model and optimizer
 MODEL = importlib.import_module(FLAGS.model) # import network module
@@ -226,7 +228,7 @@ if CHECKPOINT_PATH is not None and os.path.isfile(CHECKPOINT_PATH):
     checkpoint = torch.load(CHECKPOINT_PATH)
     net.load_state_dict(checkpoint['model_state_dict'], strict=False)
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    start_epoch = checkpoint['epoch'] - 10
+    start_epoch = checkpoint['epoch']
     log_string("-> loaded checkpoint %s (epoch: %d)"%(CHECKPOINT_PATH, start_epoch))
 
 # Decay Batchnorm momentum from 0.5 to 0.999
@@ -262,7 +264,7 @@ def train_one_epoch():
     adjust_learning_rate(optimizer, EPOCH_CNT)
     bnm_scheduler.step() # decay BN momentum
     net.train() # set model to training mode
-    for batch_idx, (batch_data_label_S, batch_data_label_T) in enumerate(zip(TRAIN_DATALOADER_S, cycle(TRAIN_DATALOADER_T))):
+    for batch_idx, (batch_data_label_S, batch_data_label_T) in enumerate(zip(cycle(TRAIN_DATALOADER_S), TRAIN_DATALOADER_T) if TRAIN_cycle_S else zip(TRAIN_DATALOADER_S, cycle(TRAIN_DATALOADER_T))):
         for key in batch_data_label_S:
             batch_data_label_S[key] = batch_data_label_S[key].to(device)
         for key in batch_data_label_T:
@@ -299,14 +301,14 @@ def train_one_epoch():
                 log_string('mean %s: %f'%(key, stat_dict[key]/batch_interval))
                 stat_dict[key] = 0
 
-def evaluate_one_epoch(visual_final=False):
+def evaluate_one_epoch():
     stat_dict = {} # collect statistics
     ap_calculator_S = APCalculator(ap_iou_thresh=FLAGS.ap_iou_thresh,
         class2type_map=DATASET_CONFIG.class2type)
     ap_calculator_T = APCalculator(ap_iou_thresh=FLAGS.ap_iou_thresh,
         class2type_map=DATASET_CONFIG.class2type)
     net.eval() # set model to eval mode (for bn and dp)
-    for batch_idx, (batch_data_label_S, batch_data_label_T) in enumerate(zip(TEST_DATALOADER_S, TEST_DATALOADER_T)):
+    for batch_idx, (batch_data_label_S, batch_data_label_T) in enumerate(zip(cycle(TEST_DATALOADER_S), TEST_DATALOADER_T) if TEST_cycle_S else zip(TEST_DATALOADER_S, cycle(TEST_DATALOADER_T))):
         if batch_idx % 10 == 0:
             print('Eval batch: %d'%(batch_idx))
         for key in batch_data_label_S:
@@ -329,34 +331,12 @@ def evaluate_one_epoch(visual_final=False):
             assert(key not in end_points_T)
             end_points_T[key] = batch_data_label_T[key]
         loss, end_points_S, end_points_T = criterion(end_points_S, end_points_T, DATASET_CONFIG)
-
-        if visual_final:
-            CONFIG_DICT['conf_thresh'] = 0.7
         
         batch_pred_map_cls_S = parse_predictions(end_points_S, CONFIG_DICT) 
         batch_gt_map_cls_S = parse_groundtruths(end_points_S, CONFIG_DICT) 
         ap_calculator_S.step(batch_pred_map_cls_S, batch_gt_map_cls_S)
-        
         batch_pred_map_cls_T = parse_predictions(end_points_T, CONFIG_DICT) 
         batch_gt_map_cls_T = parse_groundtruths(end_points_T, CONFIG_DICT) 
-        
-        if visual_final:
-            if batch_idx == 20:
-                print('Stop here!')
-            from utils.pc_util import write_bbox, write_ply, write_ply_rgb
-            point_cloud = end_points_T['point_clouds'][:, :, :3].detach().cpu().numpy()
-            pcl_color = end_points_T['pcl_color'].detach().cpu().numpy()
-            visual_path = os.path.join(BASE_DIR, 'visual')
-            
-            for i in range(point_cloud.shape[0]):
-                all_3d_box_pred = np.concatenate([batch_pred_map_cls_T[i][k][1].reshape(1,8,3) for k in range(len(batch_pred_map_cls_T[i]))], axis=0)
-                center_axis_pred = all_3d_box_pred.mean(1)
-                center_flip_pred = np.zeros(center_axis_pred.shape)
-                center_flip_pred[:,0], center_flip_pred[:,1], center_flip_pred[:,2] = center_axis_pred[:,0], center_axis_pred[:,2], -center_axis_pred[:,1]
-                size_flip_pred = (all_3d_box_pred.max(1) - all_3d_box_pred.min(1))[:, [0,2,1]]
-                bbox_pred = np.concatenate((center_flip_pred, size_flip_pred), axis=1)
-                write_bbox(bbox_pred, os.path.join(visual_path, '%02d_bbox_VSSDA.ply' % (i+batch_idx*BATCH_SIZE)))
-            
         ap_calculator_T.step(batch_pred_map_cls_T, batch_gt_map_cls_T)
 
 
@@ -388,10 +368,9 @@ def train(start_epoch):
         
         train_one_epoch()
         if EPOCH_CNT == 0 or EPOCH_CNT % 10 == 9: # Eval every 10 epochs
-            open(os.path.join(LOG_DIR, 'Eval_mAP.txt'), 'a').write('(Batch %s) ' % EPOCH_CNT)
             evaluate_one_epoch()
         # Save checkpoint
-        save_dict = {'epoch': epoch+1-10, # after training one epoch, the start_epoch should be epoch+1
+        save_dict = {'epoch': epoch+1, # after training one epoch, the start_epoch should be epoch+1
                      'optimizer_state_dict': optimizer.state_dict()
                     }
         try: # with nn.DataParallel() the net is added as a submodule of DataParallel
