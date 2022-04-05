@@ -623,7 +623,7 @@ def get_loss_DA(end_points_S, end_points_T, config):
     end_points_T['sem_cls_loss'] = sem_cls_loss_T
     box_loss_T = center_loss_T + 0.1*size_cls_loss_T
 
-    box_loss = 10*source_coefficient*box_loss_S + box_loss_T
+    box_loss = source_coefficient*box_loss_S + box_loss_T
     sem_cls_loss = source_coefficient*sem_cls_loss_S + sem_cls_loss_T
 
     ## Domain Align Loss
@@ -700,7 +700,7 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
         end_points_T['center_label'] -= min(epoch/60.0, 1.0) * end_points_T['jitter_pred'].transpose(1,2) * end_points_T['box_label_mask'].unsqueeze(-1)
         end_points_T['center_label'] = end_points_T['center_label'].detach()
 
-    source_coefficient = 0.5
+    source_coefficient = 0.1
 
     # Jitter loss
     jitter_loss_S = compute_jitter_loss(end_points_S)
