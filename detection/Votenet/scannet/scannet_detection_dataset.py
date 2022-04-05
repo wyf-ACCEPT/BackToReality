@@ -11,7 +11,6 @@ where (cx,cy,cz) is the center point of the box, dx is the x-axis length of the 
 import os
 import sys
 import numpy as np
-np.random.seed(42)
 from torch.utils.data import Dataset
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -30,7 +29,7 @@ MEAN_COLOR_RGB = np.array([109.8, 97.2, 83.8])
 class ScannetDetectionDataset(Dataset):
        
     def __init__(self, split_set='train', data_path="scannet_train_detection_data_md40", num_points=20000,
-        use_color=False, use_height=False, augment=False, center_jitter=0, generate_weak_box=False):
+        use_color=False, use_height=False, augment=False, center_jitter=0):
         
         global DC
         if data_path == "scannet_train_detection_data":
@@ -39,7 +38,6 @@ class ScannetDetectionDataset(Dataset):
             DC = SDC_md40
 
         self.center_jitter = center_jitter
-        self.generate_weak_box = generate_weak_box
 
         self.data_path = os.path.join(BASE_DIR, data_path)
         all_scan_names = list(set([os.path.basename(x)[0:18] if x.startswith('scene_aug') \
@@ -218,29 +216,6 @@ class ScannetDetectionDataset(Dataset):
         ret_dict['vote_label_mask'] = point_votes_mask.astype(np.int64)
         ret_dict['scan_idx'] = np.array(idx).astype(np.int64)
         ret_dict['pcl_color'] = pcl_color
-        
-        if self.generate_weak_box:
-            sem_num = ret_dict['sem_cls_label'][ret_dict['sem_cls_label']!=0].shape[0]
-            label_mean_size = SDC_md40.mean_size_arr[ret_dict['sem_cls_label'][:sem_num]]
-            label_actual_size = label_mean_size + ret_dict['size_residual_label'][:sem_num]
-            box_range_probably_min = ret_dict['center_label'][:sem_num] - label_mean_size / 2 * 1.2
-            box_range_probably_max = ret_dict['center_label'][:sem_num] + label_mean_size / 2 * 1.2
-            box_range_actual_min = ret_dict['center_label'][:sem_num] - label_actual_size / 2
-            box_range_actual_max = ret_dict['center_label'][:sem_num] + label_actual_size / 2
-            point_box_probably = np.zeros(ret_dict['point_clouds'].shape[0])
-            point_box_actual = np.zeros(ret_dict['point_clouds'].shape[0])
-
-            for i in range(sem_num):
-                in_box_condition_min = np.all(ret_dict['point_clouds'] > box_range_probably_min[i], axis=1)
-                in_box_condition_max = np.all(ret_dict['point_clouds'] < box_range_probably_max[i], axis=1)
-                point_box_probably[np.logical_and(in_box_condition_min, in_box_condition_max)] = 1
-                in_box_condition_min = np.all(ret_dict['point_clouds'] > box_range_actual_min[i], axis=1)
-                in_box_condition_max = np.all(ret_dict['point_clouds'] < box_range_actual_max[i], axis=1)
-                point_box_actual[np.logical_and(in_box_condition_min, in_box_condition_max)] = 1
-
-            ret_dict['point_box_probably'] = point_box_probably
-            ret_dict['point_box_actual'] = point_box_actual
-            
         return ret_dict
 
 
