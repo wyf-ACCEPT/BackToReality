@@ -569,10 +569,12 @@ def get_loss_DA(end_points_S, end_points_T, config):
         end_points: dict
     """
 
+    source_coefficient = 0.1
+
     # Vote loss
     vote_loss_S = compute_weak_vote_loss(end_points_S)
     vote_loss_T = compute_weak_vote_loss(end_points_T)
-    vote_loss = 0.1*vote_loss_S + vote_loss_T
+    vote_loss = source_coefficient*vote_loss_S + vote_loss_T
     end_points_S['vote_loss'] = vote_loss_S
     end_points_T['vote_loss'] = vote_loss_T
 
@@ -601,9 +603,7 @@ def get_loss_DA(end_points_S, end_points_T, config):
     end_points_T['neg_ratio'] = \
         torch.sum(objectness_mask_T.float())/float(total_num_proposal) - end_points_T['pos_ratio']
     
-    objectness_loss = 0.1*objectness_loss_S + objectness_loss_T
-
-    # center jitter loss for Source (Virtual)
+    objectness_loss = source_coefficient*objectness_loss_S + objectness_loss_T
 
     # Box loss and sem cls loss
     center_loss_S, heading_cls_loss, heading_reg_loss, size_cls_loss_S, size_reg_loss, sem_cls_loss_S = \
@@ -614,16 +614,17 @@ def get_loss_DA(end_points_S, end_points_T, config):
     end_points_S['size_cls_loss'] = size_cls_loss_S
     end_points_S['size_reg_loss'] = size_reg_loss
     end_points_S['sem_cls_loss'] = sem_cls_loss_S
-    box_loss = center_loss_S + 0.1*heading_cls_loss + heading_reg_loss + 0.1*size_cls_loss_S + size_reg_loss
-    end_points_S['box_loss'] = box_loss
+    box_loss_S = center_loss_S + 0.1*heading_cls_loss + heading_reg_loss + 0.1*size_cls_loss_S + size_reg_loss
+    end_points_S['box_loss'] = box_loss_S
     
     center_loss_T, size_cls_loss_T, sem_cls_loss_T = compute_center_and_sem_cls_loss(end_points_T, config)
     end_points_T['center_loss'] = center_loss_T
     end_points_T['size_cls_loss'] = size_cls_loss_T
     end_points_T['sem_cls_loss'] = sem_cls_loss_T
-    
-    box_loss += center_loss_T + 0.1*size_cls_loss_T
-    sem_cls_loss = 0.1*sem_cls_loss_S + sem_cls_loss_T
+    box_loss_T = center_loss_T + 0.1*size_cls_loss_T
+
+    box_loss = 10*source_coefficient*box_loss_S + box_loss_T
+    sem_cls_loss = source_coefficient*sem_cls_loss_S + sem_cls_loss_T
 
     ## Domain Align Loss
     FL_global = FocalLoss(class_num=2, gamma=3)
@@ -647,10 +648,10 @@ def get_loss_DA(end_points_S, end_points_T, config):
     object_weight_local_T = end_points_T['objectness_label'].unsqueeze(-1)
     target_dloss = da_coefficient * torch.mean((1-local_d_pred_T)**2 * object_weight_local_T) + da_coefficient * FL_global(global_d_pred_T, domain_T)
 
-    UDA_loss = source_dloss + target_dloss
+    DA_loss = source_dloss + target_dloss
 
     # Final loss function
-    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + UDA_loss
+    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + DA_loss
     loss *= 10
     end_points_S['loss'] = loss
 
@@ -699,6 +700,8 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
         end_points_T['center_label'] -= min(epoch/60.0, 1.0) * end_points_T['jitter_pred'].transpose(1,2) * end_points_T['box_label_mask'].unsqueeze(-1)
         end_points_T['center_label'] = end_points_T['center_label'].detach()
 
+    source_coefficient = 0.5
+
     # Jitter loss
     jitter_loss_S = compute_jitter_loss(end_points_S)
     end_points_S['jitter_loss'] = jitter_loss_S
@@ -706,7 +709,7 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
     # Vote loss
     vote_loss_S = compute_weak_vote_loss(end_points_S)
     vote_loss_T = compute_weak_vote_loss(end_points_T)
-    vote_loss = 0.1*vote_loss_S + vote_loss_T
+    vote_loss = source_coefficient*vote_loss_S + vote_loss_T
     end_points_S['vote_loss'] = vote_loss_S
     end_points_T['vote_loss'] = vote_loss_T
 
@@ -735,7 +738,7 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
     end_points_T['neg_ratio'] = \
         torch.sum(objectness_mask_T.float())/float(total_num_proposal) - end_points_T['pos_ratio']
     
-    objectness_loss = 0.1*objectness_loss_S + objectness_loss_T
+    objectness_loss = source_coefficient*objectness_loss_S + objectness_loss_T
 
     # Box loss and sem cls loss
     center_loss_S, heading_cls_loss, heading_reg_loss, size_cls_loss_S, size_reg_loss, sem_cls_loss_S = \
@@ -746,16 +749,17 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
     end_points_S['size_cls_loss'] = size_cls_loss_S
     end_points_S['size_reg_loss'] = size_reg_loss
     end_points_S['sem_cls_loss'] = sem_cls_loss_S
-    box_loss = center_loss_S + 0.1*heading_cls_loss + heading_reg_loss + 0.1*size_cls_loss_S + size_reg_loss
-    end_points_S['box_loss'] = box_loss
+    box_loss_S = center_loss_S + 0.1*heading_cls_loss + heading_reg_loss + 0.1*size_cls_loss_S + size_reg_loss
+    end_points_S['box_loss'] = box_loss_S
     
     center_loss_T, size_cls_loss_T, sem_cls_loss_T = compute_center_and_sem_cls_loss(end_points_T, config)
     end_points_T['center_loss'] = center_loss_T
     end_points_T['size_cls_loss'] = size_cls_loss_T
     end_points_T['sem_cls_loss'] = sem_cls_loss_T
-    
-    box_loss += center_loss_T + 0.1*size_cls_loss_T
-    sem_cls_loss = 0.1*sem_cls_loss_S + sem_cls_loss_T
+    box_loss_T = center_loss_T + 0.1*size_cls_loss_T
+
+    box_loss = source_coefficient*box_loss_S + box_loss_T
+    sem_cls_loss = source_coefficient*sem_cls_loss_S + sem_cls_loss_T
 
     ## Domain Align Loss
     FL_global = FocalLoss(class_num=2, gamma=3)
@@ -783,10 +787,10 @@ def get_loss_DA_jitter(end_points_S, end_points_T, epoch, config):
     object_weight_local_T = end_points_T['objectness_label'].unsqueeze(-1)
     target_dloss = da_coefficient * torch.mean((1-local_d_pred_T)**2 * object_weight_local_T) + da_coefficient * FL_global(global_d_pred_T, domain_T)# + da_coefficient * torch.mean((1-jitter_d_pred_T)**2 * jitter_weight_T)
 
-    UDA_loss = source_dloss + target_dloss
+    DA_loss = source_dloss + target_dloss
 
     # Final loss function
-    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + UDA_loss + 0.1*jitter_loss_S
+    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + DA_loss + source_coefficient*jitter_loss_S
     loss *= 10
     end_points_S['loss'] = loss
 
@@ -887,10 +891,10 @@ def get_loss_DA_separate(end_points_S, end_points_T, config):
     object_weight_T = F.softmax(end_points_T['objectness_scores'], dim=-1)[:,:,1:]
     target_dloss = 1.0 * torch.mean((1-local_d_pred_T) ** 2 * object_weight_T)
 
-    UDA_loss = source_dloss + target_dloss
+    DA_loss = source_dloss + target_dloss
 
     # Final loss function
-    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + UDA_loss
+    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + DA_loss
     loss *= 10
     end_points_S['loss'] = loss
 
@@ -1019,10 +1023,10 @@ def get_loss_DA_cam(end_points_S, end_points_T, config):
     object_weight_local_T = F.softmax(end_points_T['objectness_scores'], dim=-1)[:,:,1:]
     target_dloss = 0.5 * torch.mean((1-local_d_pred_T) ** 2 * object_weight_local_T) + 0.5 * FL_global(global_d_pred_T, domain_T) + 0.5 * FL_vote(vote_feature_d_pred_T, domain_T)
 
-    UDA_loss = source_dloss + target_dloss
+    DA_loss = source_dloss + target_dloss
 
     # Final loss function
-    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + UDA_loss
+    loss = vote_loss + 0.5*objectness_loss + box_loss + 0.1*sem_cls_loss + DA_loss
     loss *= 10
     end_points_S['loss'] = loss
 
