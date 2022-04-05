@@ -7,7 +7,6 @@
 
 Sample usage:
 python train.py --dataset sunrgbd --log_dir log_sunrgbd
-CUDA_VISIBLE_DEVICES=0 python train_md40_weak.py --dataset scannet --log_dir log_scannet --num_point 40000
 
 To use Tensorboard:
 At server:
@@ -20,7 +19,6 @@ Then go to local browser and type:
 
 import os
 import sys
-import json
 import numpy as np
 from datetime import datetime
 import argparse
@@ -38,17 +36,16 @@ sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 sys.path.append(os.path.join(ROOT_DIR, 'pointnet2'))
 sys.path.append(os.path.join(ROOT_DIR, 'models'))
 from pytorch_utils import BNMomentumScheduler
-#from tf_visualizer import Visualizer as TfVisualizer
-from ap_helper import APCalculator, parse_predictions, parse_groundtruths, flip_camera_to_axis, flip_axis_to_camera, get_3d_box
-from eval_det import get_iou_obb, get_iog_obb
+# from tf_visualizer import Visualizer as TfVisualizer
+from ap_helper import APCalculator, parse_predictions, parse_groundtruths
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='votenet_weak', help='Model file name [default: votenet]')
-parser.add_argument('--dataset', default='scannet', help='Dataset name. sunrgbd or scannet. [default: scannet]')
+parser.add_argument('--dataset', default='sunrgbd', help='Dataset name. sunrgbd or scannet. [default: sunrgbd]')
 parser.add_argument('--checkpoint_path', default=None, help='Model checkpoint path [default: None]')
-parser.add_argument('--log_dir', default='log_scannet', help='Dump dir to save model checkpoint [default: log_scannet]')
+parser.add_argument('--log_dir', default='log', help='Dump dir to save model checkpoint [default: log]')
 parser.add_argument('--dump_dir', default=None, help='Dump dir to save sample outputs [default: None]')
-parser.add_argument('--num_point', type=int, default=40000, help='Point Number [default: 40000]')
+parser.add_argument('--num_point', type=int, default=20000, help='Point Number [default: 20000]')
 parser.add_argument('--num_target', type=int, default=256, help='Proposal number [default: 256]')
 parser.add_argument('--vote_factor', type=int, default=1, help='Vote factor [default: 1]')
 parser.add_argument('--cluster_sampling', default='vote_fps', help='Sampling strategy for vote clusters: vote_fps, seed_fps, random [default: vote_fps]')
@@ -66,8 +63,7 @@ parser.add_argument('--use_color', action='store_true', help='Use RGB color in i
 parser.add_argument('--use_sunrgbd_v2', action='store_true', help='Use V2 box labels for SUN RGB-D dataset')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite existing log and dump folders.')
 parser.add_argument('--dump_results', action='store_true', help='Dump results.')
-parser.add_argument('--center_jitter', type=float, default=0.1, help='Center Jitter [default: 0.1].')
-parser.add_argument('--generate_box2box', default='', help="Where to generate box-to-box dataset [default ''] (means doesn't generate)")
+parser.add_argument('--center_jitter', type=float, default=0.1, help='magnitude of perturbation at the center [default: 0.1 (means 10%% jitter of the object size)].')
 FLAGS = parser.parse_args()
 
 # ------------------------------------------------------------------------- GLOBAL CONFIG BEG
@@ -80,21 +76,13 @@ BN_DECAY_RATE = FLAGS.bn_decay_rate
 LR_DECAY_STEPS = [int(x) for x in FLAGS.lr_decay_steps.split(',')]
 LR_DECAY_RATES = [float(x) for x in FLAGS.lr_decay_rates.split(',')]
 assert(len(LR_DECAY_STEPS)==len(LR_DECAY_RATES))
-LOG_DIR = FLAGS.log_dir
-DEFAULT_DUMP_DIR = os.path.join(BASE_DIR, os.path.basename(LOG_DIR))
+LOG_DIR = 'logs/log_{}/'.format(FLAGS.dataset) + FLAGS.log_dir
+DEFAULT_DUMP_DIR = LOG_DIR #os.path.join(BASE_DIR, os.path.basename(LOG_DIR))
 DUMP_DIR = FLAGS.dump_dir if FLAGS.dump_dir is not None else DEFAULT_DUMP_DIR
-DEFAULT_CHECKPOINT_NAME = 'train_WSB.tar'
-DEFAULT_CHECKPOINT_PATH = os.path.join(LOG_DIR, DEFAULT_CHECKPOINT_NAME)
+DEFAULT_CHECKPOINT_PATH = os.path.join(LOG_DIR, 'checkpoint.tar')
 CHECKPOINT_PATH = FLAGS.checkpoint_path if FLAGS.checkpoint_path is not None \
     else DEFAULT_CHECKPOINT_PATH
 FLAGS.DUMP_DIR = DUMP_DIR
-
-# generate_box2box: './myWS3D/dataset_box'
-if FLAGS.generate_box2box:
-    GENERATE_BOX2BOX_DATASET_PATH = FLAGS.generate_box2box + '_%02d' % (FLAGS.center_jitter*100)
-    os.makedirs(GENERATE_BOX2BOX_DATASET_PATH, exist_ok = True)
-else:
-    GENERATE_BOX2BOX_DATASET_PATH = False
 
 # Prepare LOG_DIR and DUMP_DIR
 if os.path.exists(LOG_DIR) and FLAGS.overwrite:
@@ -110,8 +98,8 @@ if os.path.exists(LOG_DIR) and FLAGS.overwrite:
 if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
 
-LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train_WSB_%02d.txt' % (FLAGS.center_jitter*100)), 'a')
-LOG_FOUT.write('\n' + str(FLAGS) + '\n')
+LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'a')
+LOG_FOUT.write(str(FLAGS)+'\n')
 def log_string(out_str):
     LOG_FOUT.write(out_str+'\n')
     LOG_FOUT.flush()
@@ -150,12 +138,12 @@ else:
     exit(-1)
 print(len(TRAIN_DATASET), len(TEST_DATASET))
 TRAIN_DATALOADER = DataLoader(TRAIN_DATASET, batch_size=BATCH_SIZE,
-    shuffle=False, num_workers=0, worker_init_fn=my_worker_init_fn)     # shuffle = True?
+    shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 TEST_DATALOADER = DataLoader(TEST_DATASET, batch_size=BATCH_SIZE,
-    shuffle=False, num_workers=0, worker_init_fn=my_worker_init_fn)
+    shuffle=True, num_workers=0, worker_init_fn=my_worker_init_fn)
 print(len(TRAIN_DATALOADER), len(TEST_DATALOADER))
 
-# Init the model and optimizer
+# Init the model and optimzier
 MODEL = importlib.import_module(FLAGS.model) # import network module
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_input_channel = int(FLAGS.use_color)*3 + int(not FLAGS.no_height)*1
@@ -175,9 +163,9 @@ net = Detector(num_class=DATASET_CONFIG.num_class,
                sampling=FLAGS.cluster_sampling)
 
 if torch.cuda.device_count() > 1:
-    log_string("Let's use %d GPUs!" % (torch.cuda.device_count()))
-    # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-    net = nn.DataParallel(net)
+  log_string("Let's use %d GPUs!" % (torch.cuda.device_count()))
+  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+  net = nn.DataParallel(net)
 net.to(device)
 criterion = MODEL.get_loss_weak
 
@@ -213,7 +201,6 @@ def adjust_learning_rate(optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-
 # Used for AP calculation
 CONFIG_DICT = {'remove_empty_box':False, 'use_3d_nms':True,
     'nms_iou':0.25, 'use_old_type_nms':False, 'cls_nms':True,
@@ -222,7 +209,7 @@ CONFIG_DICT = {'remove_empty_box':False, 'use_3d_nms':True,
 
 # ------------------------------------------------------------------------- GLOBAL CONFIG END
 
-def train_one_epoch(generate_box2box_dataset=False):
+def train_one_epoch():
     stat_dict = {} # collect statistics
     adjust_learning_rate(optimizer, EPOCH_CNT)
     bnm_scheduler.step() # decay BN momentum
@@ -250,53 +237,6 @@ def train_one_epoch(generate_box2box_dataset=False):
                 if key not in stat_dict: stat_dict[key] = 0
                 stat_dict[key] += end_points[key].item()
 
-        batch_pred_map_cls = parse_predictions(end_points, CONFIG_DICT, True)
-        batch_gt_map_cls = parse_groundtruths(end_points, CONFIG_DICT, True)
-        
-        # ----------------- Only For Generate Box2box Dataset Mode (Using in WS3D experiment) ----------------------
-        if generate_box2box_dataset:
-            
-            def volume_3d(bb):
-                lwh = bb.max(axis=0) - bb.min(axis=0)
-                return lwh[0]*lwh[1]*lwh[2]
-            
-            b_size, K2 = end_points['gt_corners_3d'].shape[:2]
-            box_label_mask = end_points['box_label_mask'].cpu().detach().numpy()
-            sem_cls_label = end_points['sem_cls_label'].cpu().detach().numpy()
-            sem_cls_pred = end_points['sem_cls_scores'].argmax(axis=2).cpu().detach().numpy()
-            pred_corners_3d_pro = end_points['pred_corners_3d_pro']
-            
-            for i in range(b_size):
-                point_cloud = inputs['point_clouds'][i][:, :3].cpu().numpy()
-                gt_box = flip_camera_to_axis(end_points['gt_corners_3d'][i])
-                for j in range(K2):
-                    if box_label_mask[i][j]==1:
-                        this_box_cls_label = sem_cls_label[i][j]
-                        this_box_corners_label = end_points['gt_corners_3d'][i][j]
-                        iou_for_this_pred = [(this_box_cls_label, k, get_iog_obb(pred_corners_3d_pro[i][k], this_box_corners_label), get_iou_obb(pred_corners_3d_pro[i][k], this_box_corners_label), volume_3d(pred_corners_3d_pro[i][k])) for k in np.where(sem_cls_pred[i]==this_box_cls_label)[0]]
-                        if iou_for_this_pred:
-                            best_iog = max(iou_for_this_pred, key=lambda x:(x[2], x[3]))
-                            
-                            if best_iog[2] > 0.8 and best_iog[3] > 0.1:
-                                xyz_min_gt, xyz_max_gt = gt_box[j].min(axis=0), gt_box[j].max(axis=0)
-                                xyz_min_pro, xyz_max_pro = flip_camera_to_axis(pred_corners_3d_pro[i][best_iog[1]]).min(axis=0), flip_camera_to_axis(pred_corners_3d_pro[i][best_iog[1]]).max(axis=0)
-                                chosen_points = np.where(np.all(xyz_min_pro < point_cloud, axis=1) * np.all(xyz_max_pro > point_cloud, axis=1))[0]
-                                save_json = {}
-                                save_json['sem_cls'] = int(best_iog[0])
-                                save_json['iog'] = float(best_iog[2])
-                                save_json['iou'] = float(best_iog[3])
-                                save_json['volume'] = float(best_iog[4])
-                                save_json['xyz_min_label'] = xyz_min_gt.tolist()
-                                save_json['xyz_max_label'] = xyz_max_gt.tolist()
-                                save_json['point_cloud'] = point_cloud[chosen_points].tolist()
-                                file_name = '_'.join([str(best_iog[0]), str(best_iog[1]), str(i), str(j)]) + '.json'
-                                json.dump(save_json, open(os.path.join(generate_box2box_dataset, file_name), 'w'), indent=4)
-                                log_string('Generate data point (class %d): ' % save_json['sem_cls'], file_name)
-                
-            if batch_idx >= 22:
-                exit(0)
-                                
-        
         batch_interval = 20
         if (batch_idx+1) % batch_interval == 0:
             log_string(' ---- batch: %03d ----' % (batch_idx+1))
@@ -304,8 +244,7 @@ def train_one_epoch(generate_box2box_dataset=False):
                 log_string('mean %s: %f'%(key, stat_dict[key]/batch_interval))
                 stat_dict[key] = 0
 
-
-def evaluate_one_epoch(visual_final=False):
+def evaluate_one_epoch():
     stat_dict = {} # collect statistics
     ap_calculator = APCalculator(ap_iou_thresh=FLAGS.ap_iou_thresh,
         class2type_map=DATASET_CONFIG.class2type)
@@ -332,11 +271,7 @@ def evaluate_one_epoch(visual_final=False):
             if 'loss' in key or 'acc' in key or 'ratio' in key:
                 if key not in stat_dict: stat_dict[key] = 0
                 stat_dict[key] += end_points[key].item()
-        
-        if visual_final:
-            CONFIG_DICT['conf_thresh'] = 0.7
-        
-        CONFIG_DICT['per_class_proposal'] = False
+
         batch_pred_map_cls = parse_predictions(end_points, CONFIG_DICT) 
         batch_gt_map_cls = parse_groundtruths(end_points, CONFIG_DICT) 
         ap_calculator.step(batch_pred_map_cls, batch_gt_map_cls)
@@ -345,7 +280,7 @@ def evaluate_one_epoch(visual_final=False):
         if FLAGS.dump_results and batch_idx == 0 and EPOCH_CNT %10 == 0:
             MODEL.dump_results(end_points, DUMP_DIR, DATASET_CONFIG) 
 
-
+    # Log statistics
     for key in sorted(stat_dict.keys()):
         log_string('eval mean %s: %f'%(key, stat_dict[key]/(float(batch_idx+1))))
 
@@ -369,11 +304,9 @@ def train(start_epoch):
         log_string('Current BN decay momentum: %f'%(bnm_scheduler.lmbd(bnm_scheduler.last_epoch)))
         log_string(str(datetime.now()))
         np.random.seed()
-        
-        train_one_epoch(GENERATE_BOX2BOX_DATASET_PATH)
-        
-        if EPOCH_CNT == 0 or EPOCH_CNT % 5 == 4: # Eval every 10 epochs
-            loss = evaluate_one_epoch(False)
+        train_one_epoch()
+        if EPOCH_CNT == 0 or EPOCH_CNT % 10 == 9: # Eval every 10 epochs
+            loss = evaluate_one_epoch()
         # Save checkpoint
         save_dict = {'epoch': epoch+1, # after training one epoch, the start_epoch should be epoch+1
                     'optimizer_state_dict': optimizer.state_dict(),
@@ -383,7 +316,7 @@ def train(start_epoch):
             save_dict['model_state_dict'] = net.module.state_dict()
         except:
             save_dict['model_state_dict'] = net.state_dict()
-        torch.save(save_dict, os.path.join(LOG_DIR, DEFAULT_CHECKPOINT_NAME))
+        torch.save(save_dict, os.path.join(LOG_DIR, 'checkpoint.tar'))
 
 if __name__=='__main__':
     train(start_epoch)
