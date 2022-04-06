@@ -66,13 +66,10 @@ def get_iou(bb1, bb2):
     iou3d = calc_iou(bb1, bb2)
     return iou3d
 
-from box_util import box3d_iou, box3d_iog
+from box_util import box3d_iou
 def get_iou_obb(bb1,bb2):
     iou3d, iou2d = box3d_iou(bb1,bb2)
     return iou3d
-
-def get_iog_obb(bb_pred, bb_gt):
-    return box3d_iog(bb_pred, bb_gt)
 
 def get_iou_main(get_iou_func, args):
     return get_iou_func(*args)

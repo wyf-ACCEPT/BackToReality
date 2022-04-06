@@ -12,7 +12,6 @@ import os
 import sys
 import pickle
 import numpy as np
-np.random.seed(42)
 from torch.utils.data import Dataset
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

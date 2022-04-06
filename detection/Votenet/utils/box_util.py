@@ -116,31 +116,6 @@ def box3d_iou(corners1, corners2):
     iou = inter_vol / (vol1 + vol2 - inter_vol)
     return iou, iou_2d
 
-def box3d_iog(corners_pred, corners_gt):      # Intersection Over Groundtruth
-    ''' Compute 3D bounding box IoG.
-
-    Input:
-        corners_pred: numpy array (8,3), assume up direction is negative Y
-        corners_gt: numpy array (8,3), assume up direction is negative Y
-    Output:
-        iog: 3D bounding box IoG
-
-    todo (rqi): add more description on corner points' orders.
-    '''
-    # corner points are in counter clockwise order
-    rect1 = [(corners_pred[i,0], corners_pred[i,2]) for i in range(3,-1,-1)]
-    rect2 = [(corners_gt[i,0], corners_gt[i,2]) for i in range(3,-1,-1)] 
-    inter, inter_area = convex_hull_intersection(rect1, rect2)
-    ymax = min(corners_pred[0,1], corners_gt[0,1])
-    ymin = max(corners_pred[4,1], corners_gt[4,1])
-    inter_vol = inter_area * max(0.0, ymax-ymin)
-    vol1 = box3d_vol(corners_pred)
-    vol2 = box3d_vol(corners_gt)
-    iog = inter_vol / vol2
-    assert iog < 1.00001
-    iog = min(iog, 1)
-    return iog
-
 
 def get_iou(bb1, bb2):
     """
