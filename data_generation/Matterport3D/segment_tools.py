@@ -135,11 +135,13 @@ def export_random(mesh_file, agg_file, seg_file, scan_name):
             else:
                 instance_ids[verts] = object_id
     
-    for i, (object_id, segs) in enumerate(object_id_to_segs.items()):
+    obj_idx = -1
+    for object_id, segs in object_id_to_segs.items():
         modelnet_id = label_map[id_to_label[object_id]]
         obj_pc = mesh_vertices[instance_ids==object_id, 0:3]
         if len(obj_pc) == 0: continue
         if modelnet_id not in [2,3,4,9,12,13,14,15,24,31,33,34,36]: continue
+        obj_idx += 1
         xmin = np.min(obj_pc[:,0])
         ymin = np.min(obj_pc[:,1])
         zmin = np.min(obj_pc[:,2])
@@ -149,7 +151,7 @@ def export_random(mesh_file, agg_file, seg_file, scan_name):
         x, y, z = (xmin+xmax)/2, (ymin+ymax)/2, (zmin+zmax)/2
         error = np.load('CONFIG/annotation_error.npy')
         scan_name_to_idx = np.load('CONFIG/name2idx.npy', allow_pickle=True).item()
-        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name], i, :]
+        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name], obj_idx, :]
         x += dx; y += dy; z += dz
         xyz_obj_dict[object_id] = [(x, y, z), id_to_label[object_id], modelnet_id]
 
