@@ -78,7 +78,7 @@ def get_horizontal_area(scene_vertices, seg):
 
 def export_random(mesh_file, agg_file, seg_file, scan_name):
     ## correct some misleading things
-    label_map = np.load("map2modelnet.npy", allow_pickle=True).item()
+    label_map = np.load("CONFIG/map2modelnet.npy", allow_pickle=True).item()
     for key, value in label_map.items():
         if "door" in key and key != "door":
             label_map[key] = 0
@@ -148,9 +148,9 @@ def export_random(mesh_file, agg_file, seg_file, scan_name):
         zmax = np.max(obj_pc[:,2])
         x, y, z = (xmin+xmax)/2, (ymin+ymax)/2, (zmin+zmax)/2
         error = np.load('CONFIG/annotation_error.npy')
-        scan_name_to_idx = np.load('CONFIG/name2idx.npy', allow_pickle=True)
-        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name]]
-        x += dx; d += dy; z += dz
+        scan_name_to_idx = np.load('CONFIG/name2idx.npy', allow_pickle=True).item()
+        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name], object_id-1, :]
+        x += dx; y += dy; z += dz
         xyz_obj_dict[object_id] = [(x, y, z), id_to_label[object_id], modelnet_id]
 
     return xyz_obj_dict
