@@ -81,8 +81,8 @@ def find_nearest_object(ls_ratio, info_dict, object_name, require_support=False)
     return txt, info_dict[min_code]
         
 
-def generate_initial_random_positions(mesh_file, agg_file, seg_file, modelnet40_path):
-    xyz_obj_dict = export_random(mesh_file, agg_file, seg_file)
+def generate_initial_random_positions(mesh_file, agg_file, seg_file, modelnet40_path, scan_name):
+    xyz_obj_dict = export_random(mesh_file, agg_file, seg_file, scan_name)
     obj_prop = np.load('CONFIG/object40_property.npy', allow_pickle=True, encoding='bytes').item()
     modelnet40_names = np.loadtxt('CONFIG/modelnet40_shape_names.txt', dtype='object')
     supporter_list = ["tv_stand", "desk", "bed", "bookshelf", "table", "night_stand"]
@@ -545,17 +545,17 @@ def export_for_md40(scan_name, Is_density=True, Is_HPR=False, Is_floor=False):
 
 
 if __name__ == "__main__":
-    MATTERPORT_DIR = "/opt/data2/MATTERPORT3D/for_scannet/scans"
+    MATTERPORT_DIR = "/path/to/matterport/for_scannet/scans"
     scan_names = os.listdir(MATTERPORT_DIR)
     for scan_name in scan_names:
         print(scan_name)
-        scan_folder = "/opt/data2/MATTERPORT3D/for_scannet/scans/" + scan_name + "/"
+        scan_folder = "/path/to/matterport/for_scannet/scans/" + scan_name + "/"
         mesh_file = os.path.join(scan_folder, 'region{}.ply'.format(int(scan_name[-2:])))
         agg_file = os.path.join(scan_folder, 'region{}.semseg.json'.format(int(scan_name[-2:])))
         seg_file = os.path.join(scan_folder, 'region{}.vsegs.json'.format(int(scan_name[-2:])))
         modelnet40_path = "./modelnet40_normal_resampled"
         try:
-            positions, fw_points = generate_initial_random_positions(mesh_file, agg_file, seg_file, modelnet40_path)
+            positions, fw_points = generate_initial_random_positions(mesh_file, agg_file, seg_file, modelnet40_path, scan_name)
         except:
             print("Failed!")
             continue
@@ -580,7 +580,7 @@ if __name__ == "__main__":
         cl = d['cloud_label']
         scan_name = dset.scan_names[d['scan_idx']]
         print(scan_name)
-        scan_folder = "/opt/data2/MATTERPORT3D/for_scannet/scans/" + scan_name + "/"
+        scan_folder = "/path/to/matterport/for_scannet/scans/" + scan_name + "/"
         mesh_file = os.path.join(scan_folder, 'region{}.ply'.format(int(scan_name[-2:])))
         agg_file = os.path.join(scan_folder, 'region{}.semseg.json'.format(int(scan_name[-2:])))
         seg_file = os.path.join(scan_folder, 'region{}.vsegs.json'.format(int(scan_name[-2:])))
