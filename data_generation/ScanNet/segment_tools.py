@@ -134,27 +134,18 @@ def export_random(mesh_file, agg_file, seg_file, meta_file):
     id_to_label = get_id_to_label(agg_file)
 
     for object_id, segs in object_id_to_segs.items():
+        for seg in segs:
+            verts = seg_to_verts[seg]
+            if label_ids[verts][0] == 0:
+                instance_ids[verts] = 0
+            else:
+                instance_ids[verts] = object_id
+    
+    for object_id, segs in object_id_to_segs.items():
         modelnet_id = label_map[id_to_label[object_id]]
-        choose_segidx = np.random.choice(segs)
-        verts = seg_to_verts[choose_segidx]
-        if label_ids[verts][0] == 0:
-            instance_ids[verts] = 0
-        else:
-            instance_ids[verts] = object_id
         obj_pc = mesh_vertices[instance_ids==object_id, 0:3]
         if len(obj_pc) == 0: continue
-        if modelnet_id == 0:
-            continue
-        '''
-        choose_segidx = np.random.choice(segs)
-        verts = seg_to_verts[choose_segidx]
-        if label_ids[verts][0] == 0:
-            instance_ids[verts] = 0
-        else:
-            instance_ids[verts] = object_id
-        vert = np.random.choice(verts)
-        x, y, z = mesh_vertices[vert]
-        '''
+        if modelnet_id == 0: continue
         xmin = np.min(obj_pc[:,0])
         ymin = np.min(obj_pc[:,1])
         zmin = np.min(obj_pc[:,2])
@@ -162,6 +153,10 @@ def export_random(mesh_file, agg_file, seg_file, meta_file):
         ymax = np.max(obj_pc[:,1])
         zmax = np.max(obj_pc[:,2])
         x, y, z = (xmin+xmax)/2, (ymin+ymax)/2, (zmin+zmax)/2
+        error = np.load('CONFIG/annotation_error.npy')
+        scan_name_to_idx = np.load('CONFIG/name2idx.npy', allow_pickle=True)
+        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[mesh_file[-22:-15]]]
+        x += dx; d += dy; z += dz
         xyz_obj_dict[object_id] = [(x, y, z), id_to_label[object_id], modelnet_id]
 
     return xyz_obj_dict
