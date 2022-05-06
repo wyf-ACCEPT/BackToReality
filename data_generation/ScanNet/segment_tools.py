@@ -157,8 +157,10 @@ def export_random(mesh_file, agg_file, seg_file, meta_file):
         x, y, z = (xmin+xmax)/2, (ymin+ymax)/2, (zmin+zmax)/2
         error = np.load('CONFIG/annotation_error.npy')
         scan_name_to_idx = np.load('CONFIG/name2idx.npy', allow_pickle=True).item()
-        dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[mesh_file[-27:-15]], obj_idx, :]
-        x += dx; y += dy; z += dz
+        if scan_name in scan_name_to_idx.keys():
+            dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name], obj_idx, :]
+        else:
+            dx, dy, dz = 0, 0, 0
         xyz_obj_dict[object_id] = [(x, y, z), id_to_label[object_id], modelnet_id]
 
     return xyz_obj_dict
