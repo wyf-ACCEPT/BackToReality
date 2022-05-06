@@ -161,6 +161,7 @@ def export_random(mesh_file, agg_file, seg_file, meta_file):
             dx, dy, dz = np.array([xmax-xmin, ymax-ymin, zmax-zmin]) * error[scan_name_to_idx[scan_name], obj_idx, :]
         else:
             dx, dy, dz = 0, 0, 0
+        x += dx; y += dy; z += dz
         xyz_obj_dict[object_id] = [(x, y, z), id_to_label[object_id], modelnet_id]
 
     return xyz_obj_dict
