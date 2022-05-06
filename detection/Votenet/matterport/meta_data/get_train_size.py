@@ -8,13 +8,13 @@ from plyfile import PlyData
 import matterport_utils
 
 
-def get_MAR(points):
+def get_MER(points):
     xys = points[:, 0:2] * 1000
     xys = xys.astype('int')
-    (x_center, y_center), (y_size, x_size), angle = cv2.minAreaRect(xys)
+    (x_center, y_center), (x_size, y_size), angle = cv2.minAreaRect(xys)
     x_center /= 1e3; y_center /= 1e3; y_size /= 1e3; x_size /= 1e3
-    angle = (90 - angle) / 180 * np.pi
-    return (x_center, y_center), (y_size, x_size), angle
+    angle = angle / 180 * np.pi
+    return (x_center, y_center), (x_size, y_size), angle
 
 
 def read_aggregation(filename):
@@ -110,7 +110,7 @@ def export(mesh_file, agg_file, seg_file, label_map_file, prop_dict):
             continue
         zmin = np.min(obj_pc[:,2])
         zmax = np.max(obj_pc[:,2])
-        (x_center, y_center), (x_size, y_size), angle = get_MAR(obj_pc)
+        (x_center, y_center), (x_size, y_size), angle = get_MER(obj_pc)
         dx = x_size
         dy = y_size
         dz = zmax - zmin

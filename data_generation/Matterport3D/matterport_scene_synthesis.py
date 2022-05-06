@@ -21,10 +21,10 @@ def get_MER(points):
     points = copy.deepcopy(points)
     xys = points[:, 0:2] * 1000
     xys = xys.astype('int')
-    (x_center, y_center), (y_size, x_size), angle = cv2.minAreaRect(xys)
+    (x_center, y_center), (x_size, y_size), angle = cv2.minAreaRect(xys)
     x_center /= 1e3; y_center /= 1e3; y_size /= 1e3; x_size /= 1e3
-    angle = (90 - angle) / 180 * np.pi
-    return (x_center, y_center), (y_size, x_size), angle
+    angle = angle / 180 * np.pi
+    return (x_center, y_center), (x_size, y_size), angle
 
 
 # MER: ((x, y), (long, short), theta)
