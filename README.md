@@ -20,8 +20,7 @@ Other papers related to 3D object detection with synthetic shape:
 
 
 ## New dataset 💥
-We conduct additional experiment on the more challenging [Matterport3D](https://niessner.github.io/Matterport/) dataset. From ModelNet40 and Matterport3D, we select all 13 shared categories, each containing more than 80 object instances in Matterport3D training set, to construct our benchmark (Matterport3d-md40). Below is the performance of FSB, WSB and BR (point-version) based on Votenet:
-![overview](./images/matterport3d.png)
+We conduct additional experiment on the more challenging [Matterport3D](https://niessner.github.io/Matterport/) dataset. From ModelNet40 and Matterport3D, we select all 13 shared categories, each containing more than 80 object instances in Matterport3D training set, to construct our benchmark (Matterport3d-md40).
 
 Note that we use OpenCV to estimate the rotated bounding boxes (RBB) as ground-truth, instead of the axis-aligned bounding boxes used in ScanNet-md40 benchmark.
 
@@ -154,7 +153,7 @@ CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR_CenterRefine.py --dataset scann
 To train the Fully-Supervised  Baseline (FSB) on Scannet data:
 
 ```.
-# Recommended num of GPUs: 4
+# Recommended num of GPUs: 2
 
 cd GroupFree3D
 
@@ -166,7 +165,7 @@ python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <nu
 To train the Weakly-Supervised Baseline (WSB) on Scannet data:
 
 ```.
-# Recommended num of GPUs: 4
+# Recommended num of GPUs: 2
 
 python -m torch.distributed.launch --master_port <port_num> --nproc_per_node <num_of_gpus_to_use> train_GF_WSB.py --num_point 50000 --num_decoder_layers 6 --size_delta 0.111111111111 --center_delta 0.04 --learning_rate 0.006 --decoder_learning_rate 0.0006 --weight_decay 0.0005 --dataset scannet --log_dir log_GF_WSB --batch_size 4
 ```
