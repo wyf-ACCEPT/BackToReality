@@ -131,7 +131,7 @@ To train BR (mesh-version) on Scannet data, please run:
 
 CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR.py --dataset scannet --log_dir log_Votenet_BRM --num_point 40000
 
-CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR_CenterRefine.py --dataset scannet --log_dir log_Votenet_BRM_Refine --num_point 40000 --checkpoint_path log_Votenet_BRM/train_BR.tar
+CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR_CenterRefine.py --dataset scannet --log_dir log_Votenet_BRM_Refine --num_point 40000 --learning_rate 3e-4 --checkpoint_path log_Votenet_BRM/train_BR.tar
 
 ```
 
@@ -142,7 +142,7 @@ To train BR (point-version) on Scannet data, please run:
 
 CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR.py --dataset scannet --log_dir log_Votenet_BRP --num_point 40000 --dataset_without_mesh
 
-CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR_CenterRefine.py --dataset scannet --log_dir log_Votenet_BRP_Refine --num_point 40000 --checkpoint_path log_Votenet_BRP/train_BR.tar --dataset_without_mesh
+CUDA_VISIBLE_DEVICES=0,1 python train_Votenet_BR_CenterRefine.py --dataset scannet --log_dir log_Votenet_BRP_Refine --num_point 40000 --learning_rate 3e-4 --checkpoint_path log_Votenet_BRP/train_BR.tar --dataset_without_mesh
 
 ```
 
