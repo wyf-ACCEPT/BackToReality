@@ -1,6 +1,6 @@
 # Prepare Matterport3D Data
 
-1. Download Matterport3D data [HERE](https://niessner.github.io/Matterport/). Only `region_segmentations` is needed.
+1. Download Matterport3D data [HERE](https://niessner.github.io/Matterport/). Only `region_segmentations` is needed. Dataset splits can be downloaded from [HERE](https://github.com/niessner/Matterport/tree/master/tasks/benchmark).
 
 2. Unzip the dataset and move `organize_as_scannet.py` into the folder. The file directory should be like:
 
